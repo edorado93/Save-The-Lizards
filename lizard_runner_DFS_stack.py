@@ -292,12 +292,10 @@ if __name__ == "__main__":
         for line in input_file:
             line = line.strip()
             if line_number == 1:
-                algorithm_to_use = line
-            elif line_number == 2:
                 n = int(line)
-            elif line_number == 3:
+            elif line_number == 2:
                 number_of_lizards = int(line)
-            elif line_number < (n + 3):
+            elif line_number < (n + 2):
                 zoo.append(map(int, list(line)))
             else:
                 zoo.append(map(int, list(line)))
