@@ -3,6 +3,16 @@
 from functools import wraps
 import time
 from Validator import Validator
+import optparse
+
+
+def get_options():
+    parser = optparse.OptionParser()
+    parser.add_option("-f", "--file", dest="filename", help="input file containing initial config.")
+    parser.add_option("-s", "--solution", action="store_true", dest="should_display_sol", help="Display entire solution instead of OK/FAIL")
+    return parser.parse_args()[0]
+
+
 def timer(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -141,11 +151,12 @@ class Zoo:
 
 
 class DFS:
-    def __init__(self, zoo, number_of_lizards_to_place):
+    def __init__(self, zoo, number_of_lizards_to_place, args):
         self.zoo = zoo
         self.lizards_to_place = number_of_lizards_to_place
         self.solution = set()
         self.N = len(zoo.get_nursery())
+        self.should_display_sol = args.should_display_sol
 
     def is_cell_invalid(self, row, col):
         N = self.N
@@ -161,8 +172,9 @@ class DFS:
         n = self.N
 
         if lizards_successfully_placed == self.lizards_to_place:
-            # print "Solution found {} and is_valid = {}".format(self.solution, Validator(self.zoo.get_nursery(),
-            #                                                                              self.solution).is_solution_valid())
+            if self.should_display_sol:
+                print "Solution found {} and is_valid = {}".format(self.solution, Validator(self.zoo.get_nursery(),
+                                                                                              self.solution).is_solution_valid())
             return True
 
         # We found a dead end with no solution
@@ -179,27 +191,13 @@ class DFS:
             # Mark the current cell as visited and add it to the solution
             zoo.mark_visited(row, column, False)
             self.solution.add((row, column))
-            if column in zoo.is_there_anything_in_this_column:
-                zoo.is_there_anything_in_this_column[column] += 1
+            if column in zoo.is_there_queen_in_this_column:
+                zoo.is_there_queen_in_this_column[column] += 1
             else:
-                zoo.is_there_anything_in_this_column[column] = 1
+                zoo.is_there_queen_in_this_column[column] = 1
 
-            next_row_number_in_same_column = self.zoo.next_largest[row][column]
+            next_row_number_in_same_column = self.zoo.next_position_same_column[row][column]
             if next_row_number_in_same_column != -1 and next_row_number_in_same_column < n:
-                """
-                    Earlier we were passing next_row_number_in_same_column + 1. That would fail in some cases. 
-                    Consider the test case 
-                    DFS
-                    3
-                    4
-                    020
-                    222
-                    020
-
-                    There is a possible solution for this. The code fails to process (2,0) after (0,0)
-                    because we missed processing the tree at (1,0). Hence we pass next_row_number_in_same_column and 
-                    not next_row_number_in_same_column + 1
-                """
                 dfs_result = self.dfs(next_row_number_in_same_column, column, lizards_successfully_placed + 1)
             else:
                 dfs_result = self.dfs(0, column + 1, lizards_successfully_placed + 1)
@@ -210,15 +208,15 @@ class DFS:
             # Unmark the current cell and remove it from the solution as well
             zoo.unmark_visited(row, column, False)
             self.solution.remove((row, column))
-            if column in zoo.is_there_anything_in_this_column:
-                zoo.is_there_anything_in_this_column[column] -= 1
+            if column in zoo.is_there_queen_in_this_column:
+                zoo.is_there_queen_in_this_column[column] -= 1
 
         # Only recurse further if the solution wasn't found in the previous recursions
         if not dfs_result:
             if row + 1 < n:
                 dfs_result = self.dfs(row + 1, column, lizards_successfully_placed)
             else:
-                if column in zoo.is_there_anything_in_this_column and zoo.is_there_anything_in_this_column[column] == 0 and column not in zoo.is_there_a_tree and (self.lizards_to_place - lizards_successfully_placed) >= (n - column + 1):
+                if column in zoo.is_there_queen_in_this_column and zoo.is_there_queen_in_this_column[column] == 0 and column not in zoo.is_there_a_tree_ahead and (self.lizards_to_place - lizards_successfully_placed) >= (n - column + 1):
                     pass
                 else:
                     dfs_result = self.dfs(0, column + 1, lizards_successfully_placed)
@@ -231,10 +229,10 @@ class DFS:
 
 
 if __name__ == "__main__":
-    filename = "input.txt"
+    args = get_options()
+    filename = args.filename
     line_number = 1
     zoo = []
-    output = open("output.txt", "w")
     with open(filename) as input_file:
         for line in input_file:
             line = line.strip()
@@ -247,12 +245,10 @@ if __name__ == "__main__":
             else:
                 zoo.append(map(int, list(line)))
                 line_number = 0  # resetting for the next input
-                dfs = DFS(Zoo(zoo), number_of_lizards)
-                result = DFS(Zoo(zoo), number_of_lizards).run(0, 0, 0)
+                result = DFS(Zoo(zoo), number_of_lizards, args).run(0, 0, 0)
                 if not result:
-                    output.write("FAIL\n")
+                    print("FAIL")
                 else:
-                    output.write('OK\n')
+                    print('OK')
                 zoo = []
             line_number += 1
-        output.close()
