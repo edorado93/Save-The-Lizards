@@ -4,6 +4,15 @@ from functools import wraps
 import time
 import copy
 from Validator import Validator
+import optparse
+
+
+def get_options():
+    parser = optparse.OptionParser()
+    parser.add_option("-f", "--file", dest="filename", help="input file containing initial config.")
+    parser.add_option("-s", "--solution", action="store_true", dest="should_display_sol", help="Display entire solution instead of OK/FAIL")
+    return parser.parse_args()[0]
+
 
 def timer(func):
     @wraps(func)
@@ -232,7 +241,7 @@ class DFS:
                 if row + 1 < n:
                     stack.append((row + 1, column, lizards_successfully_placed, CHILD))
                 else:
-                    if column in zoo.is_there_anything_in_this_column and zoo.is_there_anything_in_this_column[column] == 0 and column not in zoo.is_there_a_tree and (self.lizards_to_place - lizards_successfully_placed) >= (n - column + 1):
+                    if column in zoo.is_there_queen_in_this_column and zoo.is_there_queen_in_this_column[column] == 0 and column not in zoo.is_there_a_tree_ahead and (self.lizards_to_place - lizards_successfully_placed) >= (n - column + 1):
                         pass
                     else:
                         stack.append((0, column + 1, lizards_successfully_placed, CHILD))
@@ -243,12 +252,12 @@ class DFS:
                     # Mark the current cell as visited and add it to the solution
                     zoo.mark_visited(row, column, False)
                     solution.add((row, column))
-                    if column in zoo.is_there_anything_in_this_column:
-                        zoo.is_there_anything_in_this_column[column] += 1
+                    if column in zoo.is_there_queen_in_this_column:
+                        zoo.is_there_queen_in_this_column[column] += 1
                     else:
-                        zoo.is_there_anything_in_this_column[column] = 1
+                        zoo.is_there_queen_in_this_column[column] = 1
 
-                    next_row_number_in_same_column = self.zoo.next_largest[row][column]
+                    next_row_number_in_same_column = self.zoo.next_position_same_column[row][column]
                     if next_row_number_in_same_column != -1 and next_row_number_in_same_column < n:
                         stack.append((next_row_number_in_same_column, column, lizards_successfully_placed + 1, CHILD))
                     else:
@@ -262,8 +271,8 @@ class DFS:
                     # print "Popping {},{}".format(row, column)
                     solution.remove((row, column))
                     zoo.unmark_visited(row, column, False)
-                    if column in zoo.is_there_anything_in_this_column:
-                        zoo.is_there_anything_in_this_column[column] -= 1
+                    if column in zoo.is_there_queen_in_this_column:
+                        zoo.is_there_queen_in_this_column[column] -= 1
 
         return False
 
@@ -283,11 +292,10 @@ def print_solution(solution, trees, n, output):
         output.write("\n")
 
 if __name__ == "__main__":
-    # filename = "/Users/sachinmalhotra/Documents/USC-Studies/AI-CSCI-560/Solutions/big_input.txt"
-    filename = "input.txt"
+    args = get_options()
+    filename = args.filename
     line_number = 1
     zoo = []
-    output = open("output.txt", "w")
     with open(filename) as input_file:
         for line in input_file:
             line = line.strip()
@@ -304,13 +312,12 @@ if __name__ == "__main__":
                 result = dfs.run()
 
                 if not result:
-                    output.write("FAIL\n")
+                    print("FAIL")
                 else:
-                    output.write("OK\n")
-                    #print_solution(dfs.solution, dfs.zoo.tree_locations, dfs.N, output)
-                    # print "Solution found {} and is_valid = {}".format(dfs.solution,
-                    #                                                     Validator(dfs.zoo.get_nursery(),
-                    #                                                               dfs.solution).is_solution_valid())
+                    print("OK")
+                    if args.should_display_sol:
+                        print "Solution found {} and is_valid = {}".format(dfs.solution,
+                                                                        Validator(dfs.zoo.get_nursery(),
+                                                                                  dfs.solution).is_solution_valid())
                 zoo = []
             line_number += 1
-    output.close()
