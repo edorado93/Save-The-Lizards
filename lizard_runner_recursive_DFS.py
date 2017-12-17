@@ -23,27 +23,27 @@ class Zoo:
         self.columns = {}
         self.diagonals = {}
         self.antidiagonals = {}
-        self.did_tree_affect = {}
-        self.is_there_anything_in_this_column = {}
+        self.did_tree_have_masking_effect = {}
+        self.is_there_queen_in_this_column = {}
         # Pre-processing logic for populating the trees
-        self.next_largest = []
-        self.is_there_a_tree = {}
+        self.next_position_same_column = []
+        self.is_there_a_tree_ahead = {}
         self.preprocess()
 
     @staticmethod
-    def hash_util(hashwa, key, value_to_add, is_marking, is_tree):
+    def hash_util(dictionary, key, value_to_add, is_marking, is_tree):
         result = 1
         if is_marking:
             if is_tree:
-                if key not in hashwa or hashwa[key] < 0:
+                if key not in dictionary or dictionary[key] < 0:
                     result = -1  # Do nothing
                 else:
-                    hashwa[key] = value_to_add  # There was a queen here
+                    dictionary[key] = value_to_add  # There was a queen here
             else:
-                hashwa[key] = value_to_add
+                dictionary[key] = value_to_add
                 result = -1
         else:
-            hashwa[key] = value_to_add
+            dictionary[key] = value_to_add
 
         return result
 
@@ -60,13 +60,13 @@ class Zoo:
         c = Zoo.hash_util(self.diagonals, row - col, val, True, is_tree)
         d = Zoo.hash_util(self.antidiagonals, row + col, val, True, is_tree)
         if is_tree:
-            self.did_tree_affect[(row, col)] = (a, b, c, d)
+            self.did_tree_have_masking_effect[(row, col)] = (a, b, c, d)
 
     def unmark_visited(self, row, col, is_tree=False):
         if is_tree:
             # Tree
-            val = self.did_tree_affect[(row, col)]
-            del self.did_tree_affect[(row, col)]
+            val = self.did_tree_have_masking_effect[(row, col)]
+            del self.did_tree_have_masking_effect[(row, col)]
         else:
             # Queen
             val = (-1, -1, -1, -1)
@@ -85,7 +85,7 @@ class Zoo:
                 if nursery[i][j] == 2:
                     self.tree_locations[(i, j)] = 1
                     for k in xrange(0, j+1):
-                        self.is_there_a_tree[k] = 1
+                        self.is_there_a_tree_ahead[k] = 1
 
 
     def find_next_largest(self, column_number):
@@ -117,7 +117,7 @@ class Zoo:
         for i in xrange(0, length):
             ans = self.find_next_largest(i)
             next_largest.append(ans[::-1])
-        self.next_largest = zip(*next_largest)
+        self.next_position_same_column = zip(*next_largest)
 
     """
         Returns True if we can successfully place a queen at the given
